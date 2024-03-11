@@ -17,13 +17,30 @@ public class HeapTester
 		
 		public FunctionStats(String name) {
 			this.name = name;
+			this.failedInputs = new ArrayList<>();
+			this.failedHeaps = new ArrayList<>();
+			this.exceptionsMsg = new ArrayList<>();
+			this.brokenHeaps = new ArrayList<>();
+			this.brokenHeaps = new ArrayList<>();
+			this.invalidHeaps = new ArrayList<>();
+			this.invalidFields = new HashMap<>() ;
 		}
 		
 		public HashMap<String, Integer> getExceptionsHist() {
-			return null;
+			HashMap<String, Integer> hist = new HashMap<>();
+			for (String msg: this.exceptionsMsg) {
+				if (hist.get(msg) == null) {
+					hist.put(msg, 1);
+				}
+				else {
+					hist.put(msg, hist.get(msg) + 1);
+				}
+			}
+			return hist;
 		}
 		
 		public void printStats() {
+			System.out.println("---- Stats for " + this.name);
 			System.out.println("Number of Failures: " + failedHeaps.size());
 			System.out.println("Exceptions Histogram: " + getExceptionsHist());
 			System.out.println("Number of Broken Heaps: " + brokenHeaps.size());
@@ -47,17 +64,20 @@ public class HeapTester
 	}
 	
 	public void test() {
+		System.out.println("Building Heaps ...");
 		ArrayList<BinomialHeap> randHeaps = this.buildRandHeaps();
+		System.out.println("Checking Heaps Validity for Insert ...");
 		areHeapsValid(randHeaps, "insert");
 		areHeapsMinValid(randHeaps, "insert");
 		
+		System.out.println("Deleting Random Nodes from Heaps ...");
 		deleteRandNodes(randHeaps);
+		System.out.println("Checking Heaps Validity for Delete ...");
 		areHeapsValid(randHeaps, "delete");
 		areHeapsMinValid(randHeaps, "delete");
 		
-		
+		System.out.println("Done Running Tests. \n");
 		printStats();
-		
 	}
 	
 	public FunctionStats getFuncStats(String name) {
@@ -79,9 +99,8 @@ public class HeapTester
 					heap.insert(key, "");
 				}
 				catch (Exception e) {
-					String msg = e.getMessage();
 					FunctionStats stats = getFuncStats("insert");
-					stats.exceptionsMsg.add(msg);
+					stats.exceptionsMsg.add(e.getMessage());
 					stats.failedHeaps.add(heap);
 					stats.failedInputs.add(Integer.toString(key));
 				}
@@ -108,12 +127,13 @@ public class HeapTester
 		return items;
 	}
 	
-	public ArrayList<BinomialHeap.HeapItem> heapToKeysArray(BinomialHeap heap) {
+	public ArrayList<BinomialHeap.HeapItem> heapToItemsArray(BinomialHeap heap) {
 		ArrayList<BinomialHeap.HeapItem> items = new ArrayList<>();
 		
 		BinomialHeap.HeapNode curr = heap.first;
-		while (curr.next != null) {
+		while (curr != null) {
 			items.addAll(treeToKeysArray(curr));
+			curr = curr.next;
 		}
 		return items;
 	}
@@ -121,9 +141,20 @@ public class HeapTester
 	
 	public void deleteRandNode(BinomialHeap heap) {
 		Random rand = new Random();
-		ArrayList<BinomialHeap.HeapItem> items = heapToKeysArray(heap);
+		if (heap.size == 0) {
+			return;
+		}
+		ArrayList<BinomialHeap.HeapItem> items = heapToItemsArray(heap);
 		BinomialHeap.HeapItem toDelete = items.get(rand.nextInt(items.size()));
-		heap.delete(toDelete);
+		try {
+			heap.delete(toDelete);
+		}
+		catch (Exception e) {
+			FunctionStats stats = getFuncStats("delete");
+			stats.exceptionsMsg.add(e.getMessage());
+			stats.failedHeaps.add(heap);
+			stats.failedInputs.add(Integer.toString(toDelete.key));
+		}
 	}
 	
 	public void deleteRandNodes(ArrayList<BinomialHeap> heaps) {
@@ -134,16 +165,16 @@ public class HeapTester
 	
 	public int calcTreeSize(BinomialHeap.HeapNode node) {
 		int counter = 1;
-		BinomialHeap.HeapNode curr = node.child;
+		BinomialHeap.HeapNode curr = node;
 		BinomialHeap.HeapNode brother;
 		while (curr.child != null) {
+			curr = curr.child;
+			counter++;
 			brother = curr;
 			while (brother.next != null) {
 				brother = brother.next;
 				counter++;
 			}
-			curr = curr.child;
-			counter++;
 		}
 		
 		return counter;
@@ -155,16 +186,16 @@ public class HeapTester
 	
 	public boolean isTreeHeapValid(BinomialHeap.HeapNode node) {
 		boolean isValidHeap = true;
-		BinomialHeap.HeapNode curr = node.child;
+		BinomialHeap.HeapNode curr = node;
 		BinomialHeap.HeapNode brother;
 		while (curr.child != null && isValidHeap) {
-			if (curr.item.key < curr.parent.item.key) {
+			if (curr.parent != null && curr.item.key < curr.parent.item.key) {
 				isValidHeap = false;
 			}
 			brother = curr;
 			while (brother.next != null && isValidHeap) {
 				brother = brother.next;
-				if (brother.item.key < brother.parent.item.key) {
+				if (brother.parent != null && brother.item.key < brother.parent.item.key) {
 					isValidHeap = false;
 				}
 			}
@@ -177,13 +208,16 @@ public class HeapTester
 		FunctionStats stats = getFuncStats(funcName);
 		
 		BinomialHeap.HeapNode curr = heap.first;
-		while (curr.next != null) {
+		while(curr != null) {
 			if (!isTreeSizeValid(curr)) {
 				stats.brokenHeaps.add(heap);
+				return;
 			}
 			if (!isTreeHeapValid(curr)) {
 				stats.invalidHeaps.add(heap);
+				return;
 			}
+			curr = curr.next;
 		}
 	}
 	
@@ -196,10 +230,11 @@ public class HeapTester
 	public boolean isMinValid(BinomialHeap heap) {
 		BinomialHeap.HeapNode min = heap.first;
 		BinomialHeap.HeapNode curr = heap.first;
-		while (curr.next != null) {
+		while (curr != null) {
 			if (curr.item.key < min.item.key) {
 				min = curr;
 			}
+			curr = curr.next;
 		}
 		return heap.min == min;
 	}
@@ -211,13 +246,13 @@ public class HeapTester
 		for (BinomialHeap heap: heaps) {
 			if (!isMinValid(heap)) {
 				stats.invalidFields.get("min").add(heap);
+				}
+			}
+		}
+		
+		public void printStats() {
+			for (String funcName: FUNCS) {
+				getFuncStats(funcName).printStats();
 			}
 		}
 	}
-	
-	public void printStats() {
-		for (String funcName: FUNCS) {
-			getFuncStats(funcName).printStats();
-		}
-	}
-}
