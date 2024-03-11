@@ -82,7 +82,7 @@ public class BinomialHeap
 	 */
 	public int size()
 	{
-		return 42; // should be replaced by student code
+		return this.size;
 	}
 
 	/**
@@ -93,7 +93,7 @@ public class BinomialHeap
 	 */
 	public boolean empty()
 	{
-		return false; // should be replaced by student code
+		return this.size == 0; // should be replaced by student code
 	}
 
 	/**
