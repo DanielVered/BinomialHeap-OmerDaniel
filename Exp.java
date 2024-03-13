@@ -60,6 +60,7 @@ public class Exp {
 			this.setFieldI(i, "timeElapsed", timeElapsed);
 			this.setFieldI(i, "nTrees", heap.numTrees());
 			this.setFieldI(i, "nLinks", heap.nLinks);
+			this.setFieldI(i, "sumDeletedNodesRank", heap.delRankSum);
 		}
 		
 		public void printData() {
@@ -67,6 +68,7 @@ public class Exp {
 			for (int i = 1; i <= 6; i++) {
 				System.out.println("-- i = " + i + ":" + this.stats.get(i));
 			}
+			System.out.println("");
 		}
 	}
 	
