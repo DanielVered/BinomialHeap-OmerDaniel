@@ -105,29 +105,24 @@ public class HeapTester {
 		return heaps;
 	}
 
-	public ArrayList<BinomialHeap.HeapItem> treeToKeysArray(BinomialHeap.HeapNode node) {
-		ArrayList<BinomialHeap.HeapItem> items = new ArrayList<>();
-
-		BinomialHeap.HeapNode curr = node, brother;
+	public void treeToKeysArray(BinomialHeap.HeapNode node, ArrayList<BinomialHeap.HeapItem> items) {
 		items.add(node.item);
-		while (curr.child != null) {
-			curr = curr.child;
-			items.add(curr.item);
-			brother = curr;
-			while (brother.next != null) {
-				brother = brother.next;
-				items.add(brother.item);
+		if (node.child == null) {return;}
+		else {
+			BinomialHeap.HeapNode curr = node.child;
+			for (int i = 0; i < node.rank; i++) {
+				treeToKeysArray(curr, items);
+				curr = curr.next;
 			}
 		}
-		return items;
 	}
 
 	public ArrayList<BinomialHeap.HeapItem> heapToItemsArray(BinomialHeap heap) {
 		ArrayList<BinomialHeap.HeapItem> items = new ArrayList<>();
 
 		BinomialHeap.HeapNode curr = heap.first;
-		while (curr != null) {
-			items.addAll(treeToKeysArray(curr));
+		for (int i = 0; i < heap.numTrees(); i++) {
+			treeToKeysArray(curr, items);
 			curr = curr.next;
 		}
 		return items;
@@ -157,26 +152,13 @@ public class HeapTester {
 	}
 
 	public int calcTreeSize(BinomialHeap.HeapNode node) {
-		if (node == null)
-			return 0;
 		int size = 0;
-		BinomialHeap.HeapNode kids = node.child;
-		while (kids != null) {
-			size += calcTreeSize(kids);
-			kids = kids.next;
+		BinomialHeap.HeapNode curr = node.child;
+		for (int i = 0; i < node.rank; i++) {
+			size += calcTreeSize(curr);
+			curr = curr.next;
 		}
 		return size + 1;
-	}
-
-	public int calcHeapSize(BinomialHeap.HeapNode node) {
-		if (node == null)
-			return 0;
-		int size = 0;
-		while (node != null) {
-			size += calcTreeSize(node);
-			node = node.next;
-		}
-		return size;
 	}
 
 	public boolean isTreeSizeValid(BinomialHeap.HeapNode node) {
@@ -184,37 +166,29 @@ public class HeapTester {
 	}
 
 	public boolean isTreeHeapValid(BinomialHeap.HeapNode node) {
-		boolean isValidHeap = true;
-		BinomialHeap.HeapNode curr = node;
-		BinomialHeap.HeapNode brother;
-		while (curr.child != null && isValidHeap) {
-			if (curr.parent != null && curr.item.key < curr.parent.item.key) {
-				isValidHeap = false;
-			}
-			brother = curr;
-			while (brother.next != null && isValidHeap) {
-				brother = brother.next;
-				if (brother.parent != null && brother.item.key < brother.parent.item.key) {
-					isValidHeap = false;
-				}
-			}
-			curr = curr.child;
+		if (node.child == null) {return true;}
+
+		BinomialHeap.HeapNode curr = node.child;
+		for (int i = 0; i < node.rank; i++) {
+			if (curr.item.key < node.item.key) {return false;}
+			else if (!isTreeHeapValid(curr)) {return false;}
+			curr = curr.next;
 		}
-		return isValidHeap;
+		return true;
 	}
 
 	public void areTreesValid(BinomialHeap heap, String funcName) {
 		FunctionStats stats = getFuncStats(funcName);
 
 		BinomialHeap.HeapNode curr = heap.first;
-		while (curr != null) {
-			if (!isTreeSizeValid(curr)) {
-				stats.brokenHeaps.add(heap);
-				return;
-			}
+		for (int i = 0; i < heap.numTrees(); i++) {
 			if (!isTreeHeapValid(curr)) {
 				stats.invalidHeaps.add(heap);
-				return;
+				break;
+			}
+			if (!isTreeSizeValid(curr)) {
+				stats.brokenHeaps.add(heap);
+				break;
 			}
 			curr = curr.next;
 		}
@@ -227,15 +201,16 @@ public class HeapTester {
 	}
 
 	public boolean isMinValid(BinomialHeap heap) {
-		BinomialHeap.HeapNode min = heap.first;
-		BinomialHeap.HeapNode curr = heap.first;
-		while (curr != null) {
-			if (curr.item.key < min.item.key) {
-				min = curr;
+		ArrayList<BinomialHeap.HeapItem> items = heapToItemsArray(heap);
+		if (heap.empty()) {return heap.min == null;}
+		else {
+			BinomialHeap.HeapItem min = heap.first.item;
+			for (BinomialHeap.HeapItem item: items) {
+				if (item.key < min.key) {min = item;}
 			}
-			curr = curr.next;
+			return heap.min == min.node;
 		}
-		return heap.min == min;
+		
 	}
 
 	public void areHeapsMinValid(ArrayList<BinomialHeap> heaps, String funcName) {
