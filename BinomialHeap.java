@@ -1,3 +1,4 @@
+
 /**
  * BinomialHeap
  *
@@ -5,17 +6,14 @@
  * exercise from previous semester.
  */
 
-import java.util.*;
-
 public class BinomialHeap {
 	public int size;
-	public HeapNode first, last;
+	public HeapNode last;
 	public HeapNode min;
 	public int nLinks;
 	public int delRankSum;
 
 	public BinomialHeap() {
-		this.first = null;
 		this.last = null;
 		this.min = null;
 		this.size = 0;
@@ -24,7 +22,6 @@ public class BinomialHeap {
 	}
 
 	public BinomialHeap(BinomialHeap.HeapNode newNode) {
-		this.first = newNode;
 		this.last = newNode;
 		this.min = newNode;
 		this.size = 1;
@@ -42,9 +39,9 @@ public class BinomialHeap {
 		newItem.key = key;
 		newItem.info = info;
 		HeapNode newNode = new HeapNode(newItem);
+		newNode.next = newNode;
 		newItem.node = newNode;
 		if (this.size == 0) {
-			this.first = newNode;
 			this.last = newNode;
 			this.min = newNode;
 			this.size = 1;
@@ -60,7 +57,7 @@ public class BinomialHeap {
 	 *
 	 */
 	public HeapNode getOlderBrother(HeapNode node) {
-		HeapNode curr = this.first;
+		HeapNode curr = this.last.next;
 		while (curr.next != node) {
 			curr = curr.next;
 		}
@@ -76,16 +73,16 @@ public class BinomialHeap {
 	 */
 
 	public void fixMin() {
-		this.min = this.first;
-		HeapNode curr = this.first;
-		while (curr != null) {
+		this.min = this.last;
+		HeapNode curr = this.last;
+		do {
 			if (curr.item.key < this.min.item.key) {
 				this.min = curr;
 			}
 			curr = curr.next;
-		}
+		} while (curr != this.last);
 	}
-	
+
 	/**
 	 * 
 	 * Delete the minimal item
@@ -93,25 +90,42 @@ public class BinomialHeap {
 	 */
 	public void deleteMin() {
 		this.delRankSum += this.min.rank;
-		
 		if (this.size <= 2) {
-			this.first = this.min.child;
-			this.min = this.first;
-			this.last = this.first;
+			this.last = this.min.child;
+			this.min = this.last;
 			this.size--;
 			return;
-		} else if(this.min.rank == 0) {
-			this.first = this.first.next;
+		} else if (this.min.rank == 0) {
+			this.last.next = this.last.next.next;
 			this.size--;
 			fixMin();
 			return;
-		} else if (this.min == this.first) {
-			this.first = this.first.next;
-		} else {
-			getOlderBrother(this.min).next = this.min.next;
+		} else if (this.last == this.last.next) {
+			this.size--;
+			this.last = this.min.child;
+			fixMin();
+			return;
 		}
-		this.size = this.size - (int) (Math.pow(2,this.min.rank));
+		HeapNode brother = getOlderBrother(this.min);
+		if (this.min == this.last) {
+			this.last = brother;
+		} 
+		brother.next = brother.next.next;
+		this.size = this.size - (int) (Math.pow(2, this.min.rank));
 		this.meld(childrenHeap(this.min));
+	}
+	
+	/**
+	 * 
+	 * Creates a new Binomial Heap containing top's children
+	 * 
+	 */
+	public BinomialHeap childrenHeap(HeapNode top) {
+		BinomialHeap result = new BinomialHeap();
+		result.last = top.child;
+		result.fixMin();
+		result.size = (int) (Math.pow(2, top.rank) - 1);
+		return result;
 	}
 
 	/**
@@ -141,7 +155,7 @@ public class BinomialHeap {
 	 * 
 	 * @pre: 0 < diff < item.key
 	 * 
-	 * Decrease the key of item by diff and fix the heap.
+	 *       Decrease the key of item by diff and fix the heap.
 	 * 
 	 */
 	public void decreaseKey(HeapItem item, int diff) {
@@ -176,7 +190,13 @@ public class BinomialHeap {
 			min = node2;
 			max = node1;
 		}
-		max.next = min.child;
+		if (min.child == null) {
+			max.next = max;
+		} else {
+			HeapNode child = min.child, first = child.next;
+			max.next = first;
+			child.next = max;
+		}
 		min.child = max;
 		max.parent = min;
 		min.rank = min.rank + 1;
@@ -186,61 +206,58 @@ public class BinomialHeap {
 
 	/**
 	 * 
-	 * Creates a new Binomial Heap containing top's children
-	 * 
-	 */
-	public BinomialHeap childrenHeap(HeapNode top) {
-		Stack<HeapNode> children = new Stack<BinomialHeap.HeapNode>();
-		HeapNode current = top.child;
-		while(current != null) {
-			children.add(current);
-			current = current.next;
-		}
-		BinomialHeap result = new BinomialHeap();
-		result.first = children.pop();
-		current = result.first;
-		while(!children.isEmpty()) {
-			children.peek().next = null;
-			current.next = children.pop();
-			current = current.next;
-		}
-		result.last = current;
-		result.fixMin();
-		result.size = (int) (Math.pow(2, top.rank) - 1);
-		return result;
-	}
-
-	/**
-	 * 
 	 * Meld the heap with heap2
 	 *
 	 */
 	public void meld(BinomialHeap heap2) {
-		HeapNode thisNode = this.first, otherNode = heap2.first, carry = null;
 		this.size += heap2.size;
+		HeapNode smallLast = this.last, bigLast = heap2.last;
+		HeapNode smaller = this.last.next, bigger = heap2.last.next, carry = null;
 		HeapNode current = new HeapNode(), newFirst = current, tmp1, tmp2;
-		while (thisNode != null && otherNode != null) {
-			if (carry != null && carry.rank < Math.min(thisNode.rank, otherNode.rank)) {
+		smallLast.next = newFirst;
+		bigLast.next = newFirst;
+		if (smaller.rank > bigger.rank) {
+			tmp1 = smaller;
+			smaller = bigger;
+			bigger = tmp1;
+			tmp2 = bigLast;
+			bigLast = smallLast;
+			smallLast = tmp2;
+		}
+		boolean flag = false;
+		if (smaller.rank < bigger.rank) {
+			do {
+				tmp1 = smaller.next;
+				current.next = smaller;
+				current = current.next;
+				smaller = tmp1;
+				flag = true;
+			} while (smaller != newFirst && smaller.rank < bigger.rank);
+		}
+		flag = false;
+		while ((smaller != newFirst && bigger != newFirst) || !flag) {
+			flag = true;
+			if (carry != null && carry.rank < Math.min(smaller.rank, bigger.rank)) {
 				current.next = carry;
 				current = current.next;
 				carry = null;
-			} else if (thisNode.rank == otherNode.rank) {
+			} else if (smaller.rank == bigger.rank) {
 				if (carry != null) {
 					current.next = carry;
 					current = current.next;
 				}
-				tmp1 = thisNode.next;
-				tmp2 = otherNode.next;
-				carry = joinNodes(thisNode, otherNode);
-				thisNode = tmp1;
-				otherNode = tmp2;
+				tmp1 = smaller.next;
+				tmp2 = bigger.next;
+				carry = joinNodes(smaller, bigger);
+				smaller = tmp1;
+				bigger = tmp2;
 			} else {
-				HeapNode min = otherNode;
-				if (thisNode.rank < otherNode.rank) {
-					min = thisNode;
-					thisNode = thisNode.next;
+				HeapNode min = bigger;
+				if (smaller.rank < bigger.rank) {
+					min = smaller;
+					smaller = smaller.next;
 				} else {
-					otherNode = otherNode.next;
+					bigger = bigger.next;
 				}
 				if (carry != null) {
 					carry = joinNodes(min, carry);
@@ -250,32 +267,15 @@ public class BinomialHeap {
 				}
 			}
 		}
-		HeapNode bigger = thisNode;
-		if (thisNode == null) {
-			bigger = otherNode;
+		if (bigger == newFirst) {
+			tmp1 = bigger;
+			bigger = smaller;
+			smaller = tmp1;
+			tmp2 = bigLast;
+			bigLast = smallLast;
+			smallLast = tmp2;
 		}
-		/*while (bigger != null) {
-			if (carry != null) {
-				if (carry.rank == bigger.rank) {
-					tmp1 = bigger.next;
-					carry = joinNodes(bigger, carry);
-					bigger = tmp1;
-				} else {
-					current.next = carry;
-					carry = null;
-					current = current.next;
-				}
-			} else {
-				current.next = bigger;
-				bigger = bigger.next;
-				current = current.next;
-			}
-		}
-		if (carry != null) {
-			current.next = carry;
-			current = current.next;
-		}*/
-		while(carry != null && bigger != null && carry.rank == bigger.rank) {
+		while (carry != null && bigger != newFirst && carry.rank == bigger.rank) {
 			tmp1 = bigger.next;
 			carry = joinNodes(bigger, carry);
 			bigger = tmp1;
@@ -284,15 +284,13 @@ public class BinomialHeap {
 			current.next = carry;
 			current = current.next;
 		}
-		if (bigger != null) {
+		if (bigger != newFirst) {
 			current.next = bigger;
-			current = current.next;
+			current = bigLast;
 		}
-		
-		this.first = newFirst.next;
 		this.last = current;
+		this.last.next = newFirst.next;
 		fixMin();
-
 	}
 
 	/**
@@ -405,15 +403,18 @@ public class BinomialHeap {
 
 	public void displayHeap() {
 		System.out.print("\nHeap : ");
-		displayHeap(first);
+		displayHeap(this.last.next, this.last);
 		System.out.println("\n");
 	}
 
-	private void displayHeap(HeapNode r) {
-		if (r != null) {
-			displayHeap(r.child);
-			System.out.print(r.item.key + " ");
-			displayHeap(r.next);
+	private void displayHeap(BinomialHeap.HeapNode r, BinomialHeap.HeapNode l) {
+		if (r.child != null && r.child.rank == 0)
+			System.out.print(r.child.item.key + " ");
+		else if(r.child != null && r.child.next != null)
+			displayHeap(r.child.next, r.child);
+		System.out.print(r.item.key + " ");
+		if (r != l && r != null) {
+			displayHeap(r.next, l);
 		}
 	}
 }

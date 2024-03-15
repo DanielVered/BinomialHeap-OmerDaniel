@@ -120,7 +120,7 @@ public class HeapTester {
 	public ArrayList<BinomialHeap.HeapItem> heapToItemsArray(BinomialHeap heap) {
 		ArrayList<BinomialHeap.HeapItem> items = new ArrayList<>();
 
-		BinomialHeap.HeapNode curr = heap.first;
+		BinomialHeap.HeapNode curr = heap.last;
 		for (int i = 0; i < heap.numTrees(); i++) {
 			treeToKeysArray(curr, items);
 			curr = curr.next;
@@ -180,7 +180,7 @@ public class HeapTester {
 	public void areTreesValid(BinomialHeap heap, String funcName) {
 		FunctionStats stats = getFuncStats(funcName);
 
-		BinomialHeap.HeapNode curr = heap.first;
+		BinomialHeap.HeapNode curr = heap.last;
 		for (int i = 0; i < heap.numTrees(); i++) {
 			if (!isTreeHeapValid(curr)) {
 				stats.invalidHeaps.add(heap);
@@ -204,7 +204,7 @@ public class HeapTester {
 		ArrayList<BinomialHeap.HeapItem> items = heapToItemsArray(heap);
 		if (heap.empty()) {return heap.min == null;}
 		else {
-			BinomialHeap.HeapItem min = heap.first.item;
+			BinomialHeap.HeapItem min = heap.last.item;
 			for (BinomialHeap.HeapItem item: items) {
 				if (item.key < min.key) {min = item;}
 			}
