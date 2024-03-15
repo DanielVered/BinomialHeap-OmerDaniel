@@ -94,25 +94,23 @@ public class BinomialHeap {
 			this.last = this.min.child;
 			this.min = this.last;
 			this.size--;
-			return;
 		} else if (this.min.rank == 0) {
 			this.last.next = this.last.next.next;
 			this.size--;
 			fixMin();
-			return;
 		} else if (this.last == this.last.next) {
 			this.size--;
 			this.last = this.min.child;
 			fixMin();
-			return;
+		} else {
+			HeapNode brother = getOlderBrother(this.min);
+			if (this.min == this.last) {
+				this.last = brother;
+			} 
+			brother.next = brother.next.next;
+			this.size = this.size - (int) (Math.pow(2, this.min.rank));
+			this.meld(childrenHeap(this.min));
 		}
-		HeapNode brother = getOlderBrother(this.min);
-		if (this.min == this.last) {
-			this.last = brother;
-		} 
-		brother.next = brother.next.next;
-		this.size = this.size - (int) (Math.pow(2, this.min.rank));
-		this.meld(childrenHeap(this.min));
 	}
 	
 	/**
@@ -395,10 +393,6 @@ public class BinomialHeap {
 		public HeapNode node;
 		public int key;
 		public String info;
-
-		public int getKey() {
-			return key;
-		}
 	}
 
 	public void displayHeap() {

@@ -146,8 +146,13 @@ public class HeapTester {
 	}
 
 	public void deleteRandNodes(ArrayList<BinomialHeap> heaps) {
+		Random rand = new Random();
 		for (BinomialHeap heap : heaps) {
-			deleteRandNode(heap);
+			if (heap.size() == 0) {continue;}
+			int nDeletions = rand.nextInt(heap.size()); 
+			for (int i = 0; i < nDeletions; i++) {
+				deleteRandNode(heap);
+			}
 		}
 	}
 
